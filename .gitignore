@@ -1,0 +1,8 @@
+
+*.pyc
+.idea/modules.xml
+.idea/vcs.xml
+labCalculator/test.py
+.idea/misc.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/EngineerCalculator.iml
