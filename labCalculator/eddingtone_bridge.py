@@ -157,8 +157,8 @@ class folder_scanner():
         data = {"file": self.folders_lst}
 
         for n in range(no+1):
-            all_a = self.load_a(no)
-            all_d = self.load_d(no)
+            all_a = self.load_a(n).copy()
+            all_d = self.load_d(n).copy()
             a_d_title = "a_{num} +- Δa_{num}".format(num=n)
             relative_error_title = "a_({num} relative error)".format(num=n)
             all_a_d = []
@@ -176,8 +176,16 @@ class folder_scanner():
         if not file_display:
             data.pop("file")
         self.df = df
-        print(df)
         df.to_clipboard(index=False)
+        return df
+    
+    @staticmethod
+    def get_max_a_in_plot(plot):
+        no = 0
+        for line in plot:
+            while("a[{0}]".format(no+1) in line):
+                no += 1
+        return no
 
 if __name__ == "__main__":
     pass

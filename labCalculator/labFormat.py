@@ -6,44 +6,41 @@ import pandas as pd
 import sympy as sp
 from sympy.printing.mathml import mathml
 import re
+import eddingtone_bridge
+from docx import Document
+from docx.shared import Inches
+import os
 
-CLIPBOARD_COPY = True
+_OUT_FOLDER = r"C:\Users\chris-chen\Documents\TAU\Year B\Semester A\lab\דוחות\צמיגות\output"
+_KEYWORDS_FILTER = []
+
+CLIPBOARD_COPY = 0
 #Should the returned data should be copied to clipboard or not.
-PRINT_VALUES = True
+PRINT_VALUES = False
 #Should the returned data should be printed or not.
-KEYWORDS_FILTER = [" not rsqr"]
-#Filtering wanted folders out of th main plot folder.
+    
 
 def print_or_copy(data, print_values=PRINT_VALUES, copy_values=CLIPBOARD_COPY):
     """
     Choosing the correct action according to the global values.
     """
     if PRINT_VALUES:
-        print(data)
+        #print(data)
+        pass
     if CLIPBOARD_COPY:
         pyperclip.copy(data)
 
-def copy_table(file_display=False):
-    """
-    Copies wanted data to clipboard in a format of a table. Usfull for reports.
-    """ 
-    data = {"file": load_folders(),
-        "a_0":load_a(0),
-    	"Δa_0":load_d(0),
-        "a_1":load_a(1),
-        "Δa_1":load_d(1),
-        "a_2":load_a(2),
-        "Δa_2":load_d(2),
-        "χ_red^2":load_chi(),
-        "P_probability":load_p()}
-    df =pd.DataFrame(data)
-    print(df)
-    if not file_display:
-        data.pop("file")
-        df =pd.DataFrame(data)
-    df.to_clipboard( index=False)
+def relative_error_equaion(sign, res, er):
+    rel_er = lab_calculator.relative_error(res, er)
+    res_for = "Δ{sign} /{sign} = {rel_er}%".format(sign=sign, rel_er = rel_er)
+    print_or_copy(res_for)
+    return res_for
 
-
+def get_val_and_error_format(sign, expression, error_dict, values_dict):
+    val, er = lab_calculator.get_val_and_error(expression, error_dict, values_dict)
+    res_format = "{sign} = {val} +- {er}".format(sign=sign, val=val, er=er)
+    print_or_copy(res_format)
+    return(res_format)
 
 def format_eq(equation):
     while ("  " in equation):
@@ -56,7 +53,6 @@ def format_eq(equation):
         equation = equation.replace("+ +", "+")
     return equation
 
-
 def total_error(errors_lst):
     total = 0.0
     for er in errors_lst:
@@ -65,7 +61,8 @@ def total_error(errors_lst):
     return lab_round(er)
 
 def n_sigma_format(theory, theory_error, value, error_value):
-    res = lab_calculator.n_sigma(theory, theory_error, value, error_value)
+    res = lab_calculator.calculate_n_sigma(theory, theory_error, value, error_value)
+    res = lab_calculator.lab_round(res)
     txt = "N_σ=|({theo}−{val})|/√(({theo_error})^2+({val_er})^2 )={res}".format(theo=theory, val=value, theo_error=theory_error, val_er=error_value, res=res)
     txt = format_eq(txt)
     print_or_copy(txt)
@@ -95,12 +92,106 @@ def spympy_to_word(expretion):
     res = render_factorial(res)
     res = replace_brackets(res)
     print_or_copy(res)
+    return res
+
+class ducument_analyser():
+    def __init__(self, headFolder, formulas_dict, value_dict, error_dict, keyword_filter=[]):
+        self.headFolder = headFolder
+        self.keyword_filter = keyword_filter
+        self.data_obj = eddingtone_bridge.folder_scanner(self.headFolder, self.keyword_filter)
+        self.folrmulas_dict = formulas_dict
+        self.value_dict = value_dict
+        self.error_dict = error_dict
+        self.document = Document()
+    
+    def insert_table(self, df):
+        t = self.document.add_table(df.shape[0]+1, df.shape[1])
+        # add the header rows.
+        for j in range(df.shape[-1]):
+            t.cell(0,j).text = df.columns[j]
+        # add the rest of the data frame
+        for i in range(df.shape[0]):
+            for j in range(df.shape[-1]):
+                t.cell(i+1,j).text = str(df.values[i,j])
+
+    @staticmethod
+    def insert_new_line(run, data):
+        run.add_text(data)
+        run.add_break()
+        run.add_break()
+    
+    def get_graphs_name(self, sub_folder):
+        fit = residuals = None
+        files = os.listdir(self.headFolder + "\\" + sub_folder)
+        for img_name in files:
+            if 'fitting' in img_name:
+                fit = self.headFolder + "\\" + sub_folder + "\\" + img_name
+            if 'residuals' in img_name:
+                residuals = self.headFolder + "\\" + sub_folder + "\\" + img_name
+        return fit, residuals
+    
+    def generate_document(self, relative_dict={}):
+        filtered_folder = self.data_obj.load_folders().copy()
+        for sub_folder in filtered_folder:
+            self.data_obj.keyword_filter = [sub_folder]
+            self.data_obj.load_folders()
+            self.data_obj.load_plot_files()
+            rel_er_list = []
+            for key in self.folrmulas_dict:
+                if key in sub_folder:
+                    expression, product_symbol, extract_value, rel_er_list = self.folrmulas_dict[sub_folder]
+                    no_value = int(re.search(r'[0-9]+', spympy_to_word(extract_value)).group())
+                    if rel_er_list == []:
+                        rel_er_list = [no_value]
+            a_no = self.data_obj.get_max_a_in_plot(self.data_obj.plot_files[0])
+            p = self.document.add_paragraph()
+            r = p.add_run()
+            r.add_text('Analyse folder: ' + sub_folder)
+            self.insert_table(self.data_obj.plot_to_table(a_no, rel_er_lst=rel_er_list))
+            p = self.document.add_paragraph()
+            fit, residuals = self.get_graphs_name(sub_folder)
+            r.add_picture(fit)
+            r.add_picture(residuals)
+            expression = None
+            if expression is not None:
+                sign = spympy_to_word(product_symbol)
+                error_sign = spympy_to_word(self.error_dict[product_symbol])
+                r = p.add_run()
+                r.add_break()
+                r.add_break()
+                self.insert_new_line(r, "Expresstion:")
+                self.insert_new_line(r, sign + " = " + spympy_to_word(expression))
+                self.insert_new_line(r, "Expresstion error:")
+                self.insert_new_line(r, error_sign + " = " + spympy_to_word(lab_calculator.get_error_formula(expression, self.error_dict)))
+               
+                self.value_dict[extract_value] = self.data_obj.load_a(no_value)[0]
+                self.value_dict[self.error_dict[extract_value]] = self.data_obj.load_d(no_value)[0]
+                res, er = lab_calculator.get_val_and_error(expression, self.error_dict, self.value_dict)
+                output = get_val_and_error_format(sign, expression, self.error_dict, self.value_dict)
+                self.insert_new_line(r, "Product Value:")
+                self.insert_new_line(r, output)
+                self.insert_new_line(r, "Relative Error:")
+                output = relative_error_equaion(sign, res, er)
+                self.insert_new_line(r, output)
+                self.insert_new_line(r, "N sigma:")
+                theory_value = self.value_dict[product_symbol]
+                theory_error = self.value_dict[self.error_dict[product_symbol]]
+                output = n_sigma_format(theory_value, theory_error, res, er)
+                self.insert_new_line(r, output)
+    
+
+
+
+#document = Document()
+
+# p = document.add_paragraph()
+# r = p.add_run()
+# r.add_text('Good Morning every body,This is my ')
+# r.add_picture('/tmp/foo.jpg')
+# r.add_text(' do you like it?')
+
+# document.save('demo.docx')
 
 if __name__ == "__main__":
-    x, y, f = sp.symbols('x y f')
-    z = (x*(f**2)/y+f)**2 +y/x
-    res = sp.latex(z)
-    #print (res)
-    form = """\sqrt{\left(- \frac{ΔL \left(v_{1}^{2} - v_{2}^{2}\right)}{2 L^{2} g}\right)^{2} + \left(\left(- \frac{Δg \left(v_{1}^{2} - v_{2}^{2}\right)}{2 L g^{2}}\right)^{2} + \left(\left(\frac{v_{1} Δv_{1}}{L g}\right)^{2} + \left(- \frac{v_{2} Δv_{2}}{L g}\right)^{2}\right)\right)}"""
-    form = form.replace('\r', '\\r')
-    render_factorial(form)
+    da = ducument_analyser(_OUT_FOLDER, _KEYWORDS_FILTER)
+    da.generate_document()
