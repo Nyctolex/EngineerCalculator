@@ -22,8 +22,9 @@ def print_or_copy(data, print_values=PRINT_VALUES, copy_values=CLIPBOARD_COPY):
         pyperclip.copy(data)
 
 def value_resolution(val):
+    val = abs(val)
     resolution=0
-    if (val < 10) and (round(val, 0) > 0):
+    if (val < 10) and (int(val*100)%10 == 0) and (val - round(val, 2) == 0):
         return 1
     if val >= 10:
         resolution = 0
@@ -77,11 +78,11 @@ def result_format(sign, res, er):
     res_for = "{sign} = {res} ± {er}".format(sign=sign, res=res, er=er)
     print_or_copy(res_for)
 
-def relative_error_format(sign, res, er):
-    rel_er = labFormat.relative_error(res, er)
-    res_for = "(Δ{sign}) /{sign} = {rel_er}%".format(sign=sign, rel_er = rel_er)
-    print_or_copy(res_for)
-
+def relative_error(val, er):
+    er = abs(er)
+    rel = lab_round(er/val)
+    rel = lab_round(rel*100.0)
+    return rel
 
 def calculate_n_sigma(theory, theory_error, value, error_value):
     theory_error = lab_round(theory_error)
@@ -91,12 +92,6 @@ def calculate_n_sigma(theory, theory_error, value, error_value):
     res = abs(theory - value)/math.sqrt(theory_error**2 + error_value**2)
     res = lab_round(res, [theory_error, error_value])
     return res 
-
-def relative_error(val, er):
-    er = abs(er)
-    rel = lab_round(er/val)
-    rel = lab_round(rel*100.0)
-    return rel
 
 def geo_avg_value(value_lst):
     pass
@@ -142,7 +137,9 @@ def get_val_and_error(formula, error_dict, value_dict):
     return (value, error_value)
 
 if __name__ == "__main__":
-    print(lab_round(20.85))
+    a =  0.12
+    print(value_resolution(a))
+    print(lab_round(a))
     
 
     #print( labFormat.relative_error(v, e))
