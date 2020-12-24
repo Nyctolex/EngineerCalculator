@@ -9,7 +9,9 @@ import re
 import eddingtone_bridge
 from docx import Document
 from docx.shared import Inches
+from sympy.plotting import plot
 import os
+import matplotlib.pyplot as plt   
 
 _OUT_FOLDER = r"C:\Users\chris-chen\Documents\TAU\Year B\Semester A\lab\דוחות\צמיגות\output"
 _KEYWORDS_FILTER = []
@@ -18,8 +20,18 @@ CLIPBOARD_COPY = 0
 #Should the returned data should be copied to clipboard or not.
 PRINT_VALUES = False
 #Should the returned data should be printed or not.
-    
 
+def save_expression_image(expression, name="ouput.png"):
+    lat = sp.latex(expression) 
+    plt.text(0, 0.6, r"$%s$" % lat, fontsize = 20)                                                                                                     
+    fig = plt.gca()      
+    for spine in plt.gca().spines.values():
+        spine.set_visible(False)                                                           
+    fig.axes.get_xaxis().set_visible(False)                                         
+    fig.axes.get_yaxis().set_visible(False)                                  
+    plt.draw() 
+    plt.savefig(name, dpi = 100, bbox_inches='tight')
+    
 def print_or_copy(data, print_values=PRINT_VALUES, copy_values=CLIPBOARD_COPY):
     """
     Choosing the correct action according to the global values.
@@ -136,6 +148,7 @@ class ducument_analyser():
             self.data_obj.keyword_filter = [sub_folder]
             self.data_obj.load_folders()
             self.data_obj.load_plot_files()
+            expression = None
             rel_er_list = []
             for key in self.folrmulas_dict:
                 if key in sub_folder:
@@ -152,7 +165,7 @@ class ducument_analyser():
             fit, residuals = self.get_graphs_name(sub_folder)
             r.add_picture(fit)
             r.add_picture(residuals)
-            expression = None
+
             if expression is not None:
                 sign = spympy_to_word(product_symbol)
                 error_sign = spympy_to_word(self.error_dict[product_symbol])
