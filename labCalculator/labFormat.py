@@ -87,7 +87,6 @@ def replace_brackets(st):
 
 def render_factorial(expression):
     expression = expression.replace('\frac', '\\frac')
-    print(expression)
     while (len(re.findall(r'\\frac{.+?}{.+?}', expression)) != 0):
         factors = re.search(r'\\frac{.+?}{.+?}', expression)
         sub_ex = factors.group(0)
@@ -126,6 +125,17 @@ class ducument_analyser():
             for j in range(df.shape[-1]):
                 t.cell(i+1,j).text = str(df.values[i,j])
 
+    def insert_image_table(self, sub_folder):
+        fit, residuals = self.get_graphs_name(sub_folder)
+        t = self.document.add_table(1, 2)
+        paragraph = t.cell(0,0).paragraphs[0]
+        run = paragraph.add_run()
+        width, height= 1400000*2.1, 1400000*1.9
+        run.add_picture(residuals, width = width, height = height)
+        paragraph = t.cell(0,1).paragraphs[0]
+        run = paragraph.add_run()
+        run.add_picture(fit, width = width, height = height)
+
     @staticmethod
     def insert_new_line(run, data):
         run.add_text(data)
@@ -160,12 +170,9 @@ class ducument_analyser():
             p = self.document.add_paragraph()
             r = p.add_run()
             r.add_text('Analyse folder: ' + sub_folder)
+            self.insert_image_table(sub_folder)
             self.insert_table(self.data_obj.plot_to_table(a_no, rel_er_lst=rel_er_list))
             p = self.document.add_paragraph()
-            fit, residuals = self.get_graphs_name(sub_folder)
-            r.add_picture(fit)
-            r.add_picture(residuals)
-
             if expression is not None:
                 sign = spympy_to_word(product_symbol)
                 error_sign = spympy_to_word(self.error_dict[product_symbol])
@@ -180,31 +187,14 @@ class ducument_analyser():
                 self.value_dict[extract_value] = self.data_obj.load_a(no_value)[0]
                 self.value_dict[self.error_dict[extract_value]] = self.data_obj.load_d(no_value)[0]
                 res, er = lab_calculator.get_val_and_error(expression, self.error_dict, self.value_dict)
-                output = get_val_and_error_format(sign, expression, self.error_dict, self.value_dict)
-                self.insert_new_line(r, "Product Value:")
-                self.insert_new_line(r, output)
-                self.insert_new_line(r, "Relative Error:")
-                output = relative_error_equaion(sign, res, er)
-                self.insert_new_line(r, output)
-                self.insert_new_line(r, "N sigma:")
                 theory_value = self.value_dict[product_symbol]
                 theory_error = self.value_dict[self.error_dict[product_symbol]]
-                output = n_sigma_format(theory_value, theory_error, res, er)
-                self.insert_new_line(r, output)
-    
 
-
-
-#document = Document()
-
-# p = document.add_paragraph()
-# r = p.add_run()
-# r.add_text('Good Morning every body,This is my ')
-# r.add_picture('/tmp/foo.jpg')
-# r.add_text(' do you like it?')
-
-# document.save('demo.docx')
+                data = {"{sign}+- Δ{sign}".format(sign= product_symbol): ["{res} +- {er}".format(res=res, er=er)],
+                "Relative Error": [str(lab_calculator.relative_error(res, er))+"%"],
+                "N_σ":[str(lab_calculator.calculate_n_sigma(theory_value, theory_value, res, er))]} 
+                df =  pd.DataFrame(data)
+                self.insert_table(df)
 
 if __name__ == "__main__":
-    da = ducument_analyser(_OUT_FOLDER, _KEYWORDS_FILTER)
-    da.generate_document()
+    pass

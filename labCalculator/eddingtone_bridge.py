@@ -175,6 +175,7 @@ class folder_scanner():
         df =pd.DataFrame(data)
         if not file_display:
             data.pop("file")
+            df =pd.DataFrame(data)
         self.df = df
         df.to_clipboard(index=False)
         return df

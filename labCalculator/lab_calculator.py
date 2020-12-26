@@ -38,25 +38,6 @@ def value_resolution(val):
         val = val*10
     return resolution
 
-
-
-    # str_val = str(val)
-    # resolution=0
-    # if not "." in str_val:
-    #     resolution = -1*len(str_val[1:])
-    # else:
-    #     if (len(str_val.split(".")[0]) >= 2):
-    #         resolution = -1*len(str_val.split(".")[0][1:]) + 1
-    #     elif (str_val.split(".")[0] == "0"):
-    #         str_val = str_val.split(".")[1]
-    #         while str_val[0] == "0":
-    #             resolution += 1
-    #             str_val = str_val[1:]
-    #         resolution += 2
-    #     else:
-    #         resolution = 1
-    # return resolution
-
 def max_resolution(error_lst):
     error_res = []
     for er in error_lst:
@@ -99,6 +80,8 @@ def geo_avg_value(value_lst):
 def get_geo_avg_formula(expression_lst):
     geo_avg = None
     for expression in expression_lst:
+        print(sp.srepr(expression))
+
         if geo_avg is None:
             geo_avg = sp.Pow(expression, 2, evaluate=False)
         else:    
@@ -111,7 +94,9 @@ def get_error_formula(formula, error_dict):
     """
     expression_lst = []
     for symbol in formula.free_symbols:
-        expression_lst.append(sp.Mul(sp.diff(formula, symbol), error_dict[symbol], evaluate=True))
+        sub_ex = sp.Mul(sp.diff(formula, symbol), error_dict[symbol], evaluate=True)
+        sub_ex = sp.simplify(sub_ex)
+        expression_lst.append(sub_ex)
     return get_geo_avg_formula(expression_lst)
 
 def get_ruler_error(value):
@@ -137,10 +122,4 @@ def get_val_and_error(formula, error_dict, value_dict):
     return (value, error_value)
 
 if __name__ == "__main__":
-    a =  0.12
-    print(value_resolution(a))
-    print(lab_round(a))
-    
-
-    #print( labFormat.relative_error(v, e))
-    #pyperclip.copy(labFormat.n_sigma())
+    pass
