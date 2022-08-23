@@ -7,5 +7,5 @@ This module would take a given formula and derive it according to the "error fun
 
 ![image](https://user-images.githubusercontent.com/65441185/186191197-05200305-995a-4bf7-943e-d42ffeff0fa4.png)
 
-#HarmonicAnalysis
+# HarmonicAnalysis
 This module would generate fourier coefficients of given function is Sympy
