@@ -6,9 +6,9 @@ import sys
 import traceback
 from asyncpushbullet import *
 import sys
-sys.path.insert(1, 'C:\\Users\\chris-chen\\Documents\\TAU\\EngeeMath\\EngineerCalculator\\labCalculator')
-import lab_calculator
-import labFormat
+sys.path.insert(1, '.\\labCalculator')
+from labCalculator import lab_calculator
+from labCalculator import labFormat
 import expresstion_praser
 PROXY = os.environ.get("https_proxy") or os.environ.get("http_proxy")
 EXIT_INVALID_KEY = 1

@@ -1,3 +1,4 @@
+# lab_calculator.py
 import math
 import os
 import pyperclip
